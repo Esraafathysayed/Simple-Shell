@@ -1,49 +1,42 @@
 #include "shell.h"
 /**
- * main - main arguments functions
- * @argc:count of argumnents
- * @argv: arguments
- * @env: environment
- * Return: _exit = 0.
+ * _fork_handler - function that create a fork
+ *@arg: command and values path
+ *@argv: Has the name of our program
+ *@env: environment
+ *@line_pointer: command line for the user
+ *@np: id of process
+ *@c: Checker add new test
+ *Return: 0 success
  */
-int main(int argc, char **argv, char **env)
-{
-	char *command = NULL, **user_command = NULL;
-	int pathValue = 0, _exit = 0, n = 0;
-	(void)argc;
 
-	while (1)
+int _fork_handler(
+	char **arg, char **argv, char **env, char *line_pointer, int np, int c)
+{
+	pid_t pid_ch;
+	int st;
+	char *format = "%s: %d: %s: not found\n";
+
+	pid_ch = fork();
+
+	if (pid_ch == 0)
 	{
-		command = _getline_handler();
-		if (command)
+		if (execve(arg[0], arg, env) == -1)
 		{
-			pathValue++;
-			user_command = _token_handler(command);
-			if (!user_command)
-			{
-				free(command);
-				continue;
-			}
-			if ((!_strcmp(user_command[0], "exit")) && user_command[1] == NULL)
-				_exit_handler(user_command, command, _exit);
-			if (!_strcmp(user_command[0], "env"))
-				_env_handler(env);
-			else
-			{
-				n = _values_path_handler(&user_command[0], env);
-				_exit = _fork_handler(user_command, argv, env, command, pathValue, n);
-				if (n == 0)
-					free(user_command[0]);
-			}
-			free(user_command);
+			fprintf(stderr, format, argv[0], np, arg[0]);
+			if (!c)
+				free(arg[0]);
+			free(arg);
+			free(line_pointer);
+			exit(errno);
 		}
-		else
-		{
-			if (isatty(STDIN_FILENO))
-				write(STDOUT_FILENO, "\n", 1);
-			exit(_exit);
-		}
-		free(command);
 	}
-	return (_exit);
+	else
+	{
+		wait(&st);
+
+		if (WIFEXITED(st) && WEXITSTATUS(st) != 0)
+			return (WEXITSTATUS(st));
+	}
+	return (0);
 }
